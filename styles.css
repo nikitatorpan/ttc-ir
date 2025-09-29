@@ -1,0 +1,123 @@
+/* Import brand fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f5f5f5;
+  color: #171717;
+  line-height: 1.6;
+}
+
+header {
+  background-color: #ffffff;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+header .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+header .logo img {
+  height: 50px;
+  width: auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+#search {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  color: #171717;
+  font-size: 1rem;
+}
+
+#search::placeholder {
+  color: #777777;
+}
+
+#categories {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+#categories button {
+  padding: 0.5rem 1rem;
+  background-color: #ffffff;
+  color: #171717;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+#categories button:hover {
+  background-color: #f2f2f2;
+}
+
+#categories button.active {
+  background-color: #c6e33a;
+  border-color: #c6e33a;
+  color: #171717;
+}
+
+#items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.item-card {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.item-card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #171717;
+}
+
+.item-card p {
+  margin: 0.5rem 0;
+  color: #555555;
+}
+
+.item-card a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #c6e33a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.item-card a:hover {
+  text-decoration: underline;
+}
