@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Портал инвесторов ТилТех Капитал</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <script>
+    /* Простой запрос пароля. При неверном вводе происходит перенаправление на пустую страницу. */
+    (function() {
+      var password = "Blacktech";
+      var input = prompt("Введите пароль для доступа:");
+      if (input !== password) {
+        alert("Неверный пароль.");
+        // Перенаправляем пользователя на пустую страницу, чтобы скрыть контент
+        window.location.href = 'about:blank';
+      }
+    })();
+  </script>
+  <header>
+    <div class="logo">
+      <img src="logo.svg" alt="ТилТех Капитал логотип" />
+    </div>
+    <h1>Портал инвесторов ТилТех Капитал</h1>
+  </header>
+  <main>
+    <!-- Поиск -->
+    <input type="text" id="search" placeholder="Поиск документов…" />
+
+    <!-- Категории: кнопки будут сгенерированы динамически из списка категорий -->
+    <div id="categories"></div>
+
+    <!-- Container for items -->
+    <div id="items"></div>
+  </main>
+  <script src="data/config.js"></script>
+  <script src="scripts.js"></script>
+</body>
+</html>

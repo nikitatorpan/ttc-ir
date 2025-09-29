@@ -1,0 +1,146 @@
+/* Import brand fonts */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+/* Цветовые переменные для лёгкой настройки дизайна */
+:root {
+  --bg-color: #f7f8f9;
+  --card-bg: #ffffff;
+  --text-color: #1a1a1a;
+  --accent-color: #c6e33a;
+  --accent-hover: #b5d932;
+  --border-color: #e5e7eb;
+}
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+header {
+  background-color: var(--card-bg);
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+header .logo img {
+  height: 60px;
+  width: auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.2rem;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+}
+
+main {
+  width: 100%;
+  padding: 2rem 4%;
+  box-sizing: border-box;
+}
+
+#search {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+#search::placeholder {
+  color: #888888;
+}
+
+#categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+#categories button {
+  padding: 0.5rem 1.2rem;
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 0.95rem;
+}
+
+#categories button:hover {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+#categories button.active {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+#items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.item-card {
+  background-color: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.item-card h2 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.item-card p {
+  margin: 0.25rem 0;
+  color: #555555;
+  font-size: 0.95rem;
+}
+
+.item-card .item-logo {
+  max-width: 80px;
+  margin-bottom: 1rem;
+}
+
+.item-card a {
+  margin-top: auto;
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  background-color: var(--accent-color);
+  color: #ffffff;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.item-card a:hover {
+  background-color: var(--accent-hover);
+}
