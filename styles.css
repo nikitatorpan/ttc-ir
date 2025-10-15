@@ -6,7 +6,6 @@
   --accent:#c7f000; /* фирменный лайм */
   --accent-ink:#10120f;
   --ring:#31363b;
-  --brand:#ffffff;
 }
 
 *{box-sizing:border-box}
@@ -18,25 +17,24 @@ body{
   background:linear-gradient(180deg,#0f1112 0%, #121416 100%);
 }
 
+/* Хедер */
 .app-header{
   position:sticky; top:0; z-index:50;
-  display:flex; align-items:center; gap:20px; justify-content:space-between;
-  padding:14px 24px;
-  border-bottom:1px solid var(--ring);
-  background:rgba(15,17,18,.75); backdrop-filter: blur(10px);
+  display:flex; align-items:center; gap:16px; justify-content:space-between;
+  padding:14px 24px; border-bottom:1px solid var(--ring);
+  background:rgba(15,17,18,.72); backdrop-filter: blur(8px);
 }
-.brand{display:flex; align-items:center; gap:14px; font-family:'Oswald',sans-serif; font-size:20px; letter-spacing:.2px}
+.brand{display:flex; align-items:center; gap:12px; font-family:'Oswald',sans-serif; letter-spacing:.2px}
 .brand img{height:34px}
-.controls{display:flex; align-items:center; gap:12px; width:min(720px,60vw)}
-.controls input{
-  width:100%; padding:12px 14px; border-radius:12px;
+.app-header input{
+  width:min(720px,60vw); padding:12px 14px; border-radius:12px;
   border:1px solid var(--ring); background:#0d0f10; color:var(--ink);
-  outline:none;
 }
-.controls input:focus{border-color:var(--accent); box-shadow:0 0 0 3px #c7f00030}
+.app-header input:focus{border-color:var(--accent); box-shadow:0 0 0 3px #c7f00030; outline: none;}
 
 .container{padding:28px; max-width:1600px; margin-inline:auto}
 
+/* Сетка на всю ширину */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
@@ -45,47 +43,39 @@ body{
 
 /* Папка (категория/субкатегория) */
 .folder{
-  background:var(--card);
-  border:1px solid var(--ring);
-  border-radius:16px;
-  padding:18px;
-  display:flex; flex-direction:column; gap:12px;
-  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  background:var(--card); border:1px solid var(--ring); border-radius:16px; padding:18px;
+  display:flex; flex-direction:column; gap:10px;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  cursor:pointer;
 }
 .folder:hover{transform:translateY(-3px); border-color:#3a3f45; box-shadow:0 8px 30px rgba(0,0,0,.25)}
 .folder .title{font-weight:600}
 .folder .meta{color:var(--muted); font-size:13px}
-.folder .badge{display:inline-flex; gap:6px; align-items:center; background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:6px 10px; font-weight:600; font-size:12px}
+.folder .badge{align-self:flex-start; background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:6px 10px; font-weight:700; font-size:12px}
 
 /* Документ */
 .card{
   background:#121416; border:1px solid var(--ring); border-radius:16px; padding:18px;
   display:flex; flex-direction:column; gap:10px;
-  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
 }
 .card:hover{transform:translateY(-2px); border-color:#3a3f45; box-shadow:0 8px 30px rgba(0,0,0,.25)}
 .card .kicker{color:var(--muted); font-size:12px}
 .card .title{font-family:'Oswald',sans-serif; font-size:20px}
 .card .desc{color:var(--muted); font-size:14px}
 .card .actions{display:flex; align-items:center; justify-content:space-between; margin-top:6px}
-.card .actions a{color:var(--accent-ink); background:var(--accent); padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:600}
+.card .actions a{color:var(--accent-ink); background:var(--accent); padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:700}
 .card .actions a:hover{filter:brightness(1.05)}
-.logo{height:28px; filter:grayscale(.1) contrast(1.1)}
+.logo{height:28px; margin-right:8px; vertical-align:middle;}
 
-.breadcrumbs{
-  padding:8px 28px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap;
-}
+/* Хлебные крошки */
+.breadcrumbs{padding:8px 28px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap}
 .breadcrumbs a{color:var(--ink); text-decoration:none}
 .breadcrumbs .sep{opacity:.5}
 
-#gate{
-  position:fixed; inset:0; background:radial-gradient(80% 80% at 50% 30%, #1a1d20 0%, #0d0e10 100%);
-  display:grid; place-items:center; z-index:1000;
-}
-.gate-card{
-  width:min(560px,92vw); background:#121416; border:1px solid var(--ring); border-radius:18px; padding:26px;
-  box-shadow:0 20px 80px rgba(0,0,0,.4);
-}
+/* Парольный экран */
+#gate{position:fixed; inset:0; background:radial-gradient(80% 80% at 50% 30%, #1a1d20 0%, #0d0e10 100%); display:grid; place-items:center; z-index:1000}
+.gate-card{width:min(560px,92vw); background:#121416; border:1px solid var(--ring); border-radius:18px; padding:26px; box-shadow:0 20px 80px rgba(0,0,0,.4)}
 .gate-card h1{margin:0 0 8px; font-family:'Oswald',sans-serif}
 .gate-card input{width:100%; padding:12px 14px; margin:10px 0; background:#0d0f10; border:1px solid var(--ring); border-radius:12px; color:var(--ink)}
 .gate-card button{background:var(--accent); color:var(--accent-ink); border:none; padding:12px 16px; border-radius:12px; font-weight:700; cursor:pointer}
