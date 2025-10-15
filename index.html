@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Портал инвесторов ТилТех</title>
-  <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Простая парольная защита -->
-  <div id="gate">
+  <!-- Простейший пароль -->
+  <div id="gate" aria-hidden="false">
     <div class="gate-card">
       <h1>Портал инвесторов ТилТех</h1>
       <p>Введите пароль доступа</p>
@@ -26,24 +26,17 @@
       <img src="assets/ttc_logo.svg" alt="ТилТех Капитал" />
       <span>Портал инвесторов</span>
     </div>
-
-    <div class="controls">
-      <input id="search" type="search" placeholder="Поиск документов…" />
-    </div>
+    <input id="search" type="search" placeholder="Поиск по документам…" />
   </header>
 
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Хлебные крошки">
-    <!-- динамически -->
-  </nav>
+  <nav id="breadcrumbs" class="breadcrumbs"></nav>
 
   <main class="container">
-    <!-- ГЛАВНАЯ: папки категорий -->
+    <!-- Главная: папки категорий -->
     <section id="view-categories" class="grid"></section>
-
-    <!-- КАТЕГОРИЯ: папки субкатегорий -->
+    <!-- Внутри категории: папки субкатегорий -->
     <section id="view-subcategories" class="grid" hidden></section>
-
-    <!-- СПИСОК ДОКУМЕНТОВ -->
+    <!-- Список документов -->
     <section id="view-items" class="grid" hidden></section>
   </main>
 
