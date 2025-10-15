@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Простейший пароль -->
-  <div id="gate" aria-hidden="false">
+  <!-- Пароль -->
+  <div id="gate">
     <div class="gate-card">
       <h1>Портал инвесторов ТилТех</h1>
       <p>Введите пароль доступа</p>
@@ -22,22 +22,22 @@
   </div>
 
   <header class="app-header">
-    <div class="brand">
-      <img src="assets/ttc_logo.svg" alt="ТилТех Капитал" />
-      <span>Портал инвесторов</span>
+    <a id="brandHome" class="brand" href="#">
+      <img src="assets/ttc_logo_white.png" alt="ТилТех Капитал" />
+      <span>Портал инвесторов ТилТех</span>
+    </a>
+
+    <div class="head-controls">
+      <button id="backBtn" hidden>Назад</button>
+      <input id="search" type="search" placeholder="Поиск документов…" />
     </div>
-    <input id="search" type="search" placeholder="Поиск по документам…" />
   </header>
 
-  <nav id="breadcrumbs" class="breadcrumbs"></nav>
+  <!-- Фильтры категорий (динамически) -->
+  <nav id="categories" class="chips"></nav>
 
   <main class="container">
-    <!-- Главная: папки категорий -->
-    <section id="view-categories" class="grid"></section>
-    <!-- Внутри категории: папки субкатегорий -->
-    <section id="view-subcategories" class="grid" hidden></section>
-    <!-- Список документов -->
-    <section id="view-items" class="grid" hidden></section>
+    <section id="items" class="grid"></section>
   </main>
 
   <script src="scripts.js"></script>
