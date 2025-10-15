@@ -1,146 +1,92 @@
-/* Import brand fonts */
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
-
-/* Цветовые переменные для лёгкой настройки дизайна */
-:root {
-  --bg-color: #f7f8f9;
-  --card-bg: #ffffff;
-  --text-color: #1a1a1a;
-  --accent-color: #c6e33a;
-  --accent-hover: #b5d932;
-  --border-color: #e5e7eb;
+:root{
+  --bg:#0f1112;
+  --card:#17191b;
+  --ink:#e9ecef;
+  --muted:#a8b0b7;
+  --accent:#c7f000; /* фирменный лайм */
+  --accent-ink:#10120f;
+  --ring:#31363b;
+  --brand:#ffffff;
 }
 
-body {
-  margin: 0;
-  font-family: 'Montserrat', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  line-height: 1.6;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;
+  color:var(--ink);
+  background:linear-gradient(180deg,#0f1112 0%, #121416 100%);
 }
 
-header {
-  background-color: var(--card-bg);
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+.app-header{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:20px; justify-content:space-between;
+  padding:14px 24px;
+  border-bottom:1px solid var(--ring);
+  background:rgba(15,17,18,.75); backdrop-filter: blur(10px);
+}
+.brand{display:flex; align-items:center; gap:14px; font-family:'Oswald',sans-serif; font-size:20px; letter-spacing:.2px}
+.brand img{height:34px}
+.controls{display:flex; align-items:center; gap:12px; width:min(720px,60vw)}
+.controls input{
+  width:100%; padding:12px 14px; border-radius:12px;
+  border:1px solid var(--ring); background:#0d0f10; color:var(--ink);
+  outline:none;
+}
+.controls input:focus{border-color:var(--accent); box-shadow:0 0 0 3px #c7f00030}
+
+.container{padding:28px; max-width:1600px; margin-inline:auto}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:18px;
 }
 
-header .logo img {
-  height: 60px;
-  width: auto;
+/* Папка (категория/субкатегория) */
+.folder{
+  background:var(--card);
+  border:1px solid var(--ring);
+  border-radius:16px;
+  padding:18px;
+  display:flex; flex-direction:column; gap:12px;
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
+.folder:hover{transform:translateY(-3px); border-color:#3a3f45; box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.folder .title{font-weight:600}
+.folder .meta{color:var(--muted); font-size:13px}
+.folder .badge{display:inline-flex; gap:6px; align-items:center; background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:6px 10px; font-weight:600; font-size:12px}
 
-h1 {
-  margin: 0;
-  font-size: 2.2rem;
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
+/* Документ */
+.card{
+  background:#121416; border:1px solid var(--ring); border-radius:16px; padding:18px;
+  display:flex; flex-direction:column; gap:10px;
+  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
+.card:hover{transform:translateY(-2px); border-color:#3a3f45; box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.card .kicker{color:var(--muted); font-size:12px}
+.card .title{font-family:'Oswald',sans-serif; font-size:20px}
+.card .desc{color:var(--muted); font-size:14px}
+.card .actions{display:flex; align-items:center; justify-content:space-between; margin-top:6px}
+.card .actions a{color:var(--accent-ink); background:var(--accent); padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:600}
+.card .actions a:hover{filter:brightness(1.05)}
+.logo{height:28px; filter:grayscale(.1) contrast(1.1)}
 
-main {
-  width: 100%;
-  padding: 2rem 4%;
-  box-sizing: border-box;
+.breadcrumbs{
+  padding:8px 28px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap;
 }
+.breadcrumbs a{color:var(--ink); text-decoration:none}
+.breadcrumbs .sep{opacity:.5}
 
-#search {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  margin-bottom: 1.5rem;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  color: var(--text-color);
-  font-size: 1rem;
+#gate{
+  position:fixed; inset:0; background:radial-gradient(80% 80% at 50% 30%, #1a1d20 0%, #0d0e10 100%);
+  display:grid; place-items:center; z-index:1000;
 }
-
-#search::placeholder {
-  color: #888888;
+.gate-card{
+  width:min(560px,92vw); background:#121416; border:1px solid var(--ring); border-radius:18px; padding:26px;
+  box-shadow:0 20px 80px rgba(0,0,0,.4);
 }
-
-#categories {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-#categories button {
-  padding: 0.5rem 1.2rem;
-  background-color: transparent;
-  color: var(--text-color);
-  border: 1px solid var(--accent-color);
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  font-size: 0.95rem;
-}
-
-#categories button:hover {
-  background-color: var(--accent-color);
-  color: #ffffff;
-}
-
-#categories button.active {
-  background-color: var(--accent-color);
-  color: #ffffff;
-}
-
-#items {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.item-card {
-  background-color: var(--card-bg);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  min-height: 200px;
-}
-
-.item-card h2 {
-  margin-top: 0;
-  font-size: 1.3rem;
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.item-card p {
-  margin: 0.25rem 0;
-  color: #555555;
-  font-size: 0.95rem;
-}
-
-.item-card .item-logo {
-  max-width: 80px;
-  margin-bottom: 1rem;
-}
-
-.item-card a {
-  margin-top: auto;
-  display: inline-block;
-  padding: 0.4rem 0.8rem;
-  background-color: var(--accent-color);
-  color: #ffffff;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  font-weight: 600;
-  transition: background-color 0.2s;
-}
-
-.item-card a:hover {
-  background-color: var(--accent-hover);
-}
+.gate-card h1{margin:0 0 8px; font-family:'Oswald',sans-serif}
+.gate-card input{width:100%; padding:12px 14px; margin:10px 0; background:#0d0f10; border:1px solid var(--ring); border-radius:12px; color:var(--ink)}
+.gate-card button{background:var(--accent); color:var(--accent-ink); border:none; padding:12px 16px; border-radius:12px; font-weight:700; cursor:pointer}
+.err{color:#ff6b6b; min-height:18px; margin-top:4px}
