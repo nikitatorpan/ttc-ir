@@ -1,33 +1,31 @@
-// ===== НАСТРОЙКИ (оставил ваши значения) ===================================
+// ===== Конфигурация =========================================================
 const SHEET_ID = '1fm8DS_c5sZFtFx1qvu03Qf-vKkDrjRLEMtw9WiEmFVY';
 const API_KEY  = 'AIzaSyAQcfiN2HujLtT_6Ye1Fof5-55jj5epZBo';
 const RANGE    = 'Лист1!A:G'; // Категория | Субкатегория | Название | Дата | Описание | Ссылка | Логотип
 const PORTAL_PASSWORD = 'Blacktech';
 
-// === УТИЛЫ ==================================================================
+// ===== Утилиты ==============================================================
 const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 const parseDate = (str) => {
   if(!str) return null;
-  const trimmed = String(str).trim();
-  const iso = /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed
-            : /^\d{2}\.\d{2}\.\d{4}$/.test(trimmed) ? trimmed.split('.').reverse().join('-')
-            : trimmed;
+  const t = String(str).trim();
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(t) ? t
+            : /^\d{2}\.\d{2}\.\d{4}$/.test(t) ? t.split('.').reverse().join('-')
+            : t;
   const d = new Date(iso);
   return isNaN(+d) ? null : d;
 }
 const fmtDate = (d) => d ? d.toLocaleDateString('ru-RU') : '—';
 
-// === СОСТОЯНИЕ ==============================================================
+// ===== Состояние ============================================================
 const state = {
-  view: 'cats',    // cats | subs | items
-  cat: null,
-  sub: null,
   items: [],
-  tree: new Map(), // Map<Категория, Map<Субкатегория, Item[]>>
+  activeCat: 'all',  // 'all' | <категория>
   search: ''
 };
 
-// === ЗАГРУЗКА И ПОСТРОЕНИЕ ДЕРЕВА ==========================================
+// ===== Данные из Google Sheets =============================================
 async function loadFromSheet(){
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
   const res = await fetch(url);
@@ -48,7 +46,7 @@ async function loadFromSheet(){
   const items = rows.slice(1).map((r, id) => ({
     id,
     category: (r[iCat]||'Без категории').trim(),
-    subcategory: (r[iSub]||'Без раздела').trim(),
+    subcategory: (r[iSub]||'').trim(),
     title: (r[iTitle]||'Без названия').trim(),
     date: parseDate(r[iDate]),
     description: (r[iDesc]||'').trim(),
@@ -56,95 +54,47 @@ async function loadFromSheet(){
     logo: (r[iLogo]||'').trim()
   }));
 
-  // новые → старые
-  items.sort((a,b) => (b.date?.getTime()||0)-(a.date?.getTime()||0));
+  // Сортировка: новые сверху
+  items.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
   state.items = items;
-
-  // дерево
-  const tree = new Map();
-  for(const it of items){
-    if(!tree.has(it.category)) tree.set(it.category, new Map());
-    const subs = tree.get(it.category);
-    const key = it.subcategory || 'Без раздела';
-    if(!subs.has(key)) subs.set(key, []);
-    subs.get(key).push(it);
-  }
-  state.tree = tree;
 }
 
-// === РЕНДЕР =================================================================
-function renderBreadcrumbs(){
-  const parts = [];
-  parts.push(`<a href="#" data-nav="root">Главная</a>`);
-  if(state.view!=='cats' && state.cat) parts.push(`<span class="sep">/</span><a href="#" data-nav="cat">${state.cat}</a>`);
-  if(state.view==='items' && state.sub) parts.push(`<span class="sep">/</span><span>${state.sub}</span>`);
-  $('#breadcrumbs').innerHTML = parts.join(' ');
-  $('#breadcrumbs').onclick = (e)=>{
-    const a = e.target.closest('a[data-nav]');
-    if(!a) return;
-    e.preventDefault();
-    const nav = a.dataset.nav;
-    if(nav==='root'){ state.view='cats'; state.cat=null; state.sub=null; state.search=''; $('#search').value=''; }
-    if(nav==='cat'){ state.view='subs'; state.sub=null; }
-    draw();
-  };
-}
-
+// ===== Рендер фильтров (категории) =========================================
 function renderCategories(){
-  const wrap = $('#view-categories');
-  wrap.hidden = false; $('#view-subcategories').hidden=true; $('#view-items').hidden=true;
+  const box = $('#categories');
+  const cats = ['all', ...new Set(state.items.map(i => i.category))];
+  box.innerHTML = cats.map(cat => `
+    <button data-cat="${cat}" class="${state.activeCat===cat ? 'active':''}">
+      ${cat==='all' ? 'Все' : cat}
+    </button>
+  `).join('');
 
-  const cards = [];
-  for(const [cat, subs] of state.tree.entries()){
-    let count = 0; for(const arr of subs.values()) count += arr.length;
-    cards.push(`
-      <article class="folder" data-cat="${cat}">
-        <div class="title">${cat}</div>
-        <div class="meta">Разделов: ${subs.size}</div>
-        <span class="badge">${count} док.</span>
-      </article>
-    `);
-  }
-  wrap.innerHTML = cards.join('');
-  wrap.onclick = (e)=>{
-    const el = e.target.closest('.folder'); if(!el) return;
-    state.cat = el.dataset.cat; state.view='subs';
-    renderBreadcrumbs(); renderSubcategories();
+  // клик по категории
+  box.onclick = (e)=>{
+    const btn = e.target.closest('button[data-cat]');
+    if(!btn) return;
+    const cat = btn.dataset.cat;
+    if(cat === state.activeCat) return;
+    state.activeCat = cat;
+    state.search = '';
+    $('#search').value = '';
+    pushRoute();
+    renderCategories();
+    renderItems();
+    toggleBack();
   };
 }
 
-function renderSubcategories(){
-  const wrap = $('#view-subcategories');
-  wrap.hidden = false; $('#view-categories').hidden=true; $('#view-items').hidden=true;
-
-  const subs = state.tree.get(state.cat) || new Map();
-  const cards = [];
-  for(const [sub, arr] of subs.entries()){
-    cards.push(`
-      <article class="folder" data-sub="${sub}">
-        <div class="title">${sub}</div>
-        <div class="meta">${state.cat}</div>
-        <span class="badge">${arr.length} док.</span>
-      </article>
-    `);
-  }
-  wrap.innerHTML = cards.join('');
-  wrap.onclick = (e)=>{
-    const el = e.target.closest('.folder'); if(!el) return;
-    state.sub = el.dataset.sub; state.view='items';
-    renderBreadcrumbs(); renderItems();
-  };
-}
-
+// ===== Рендер карточек ======================================================
 function renderItems(){
-  const wrap = $('#view-items');
-  wrap.hidden = false; $('#view-categories').hidden=true; $('#view-subcategories').hidden=true;
-
+  const wrap = $('#items');
+  const q = state.search.toLowerCase();
   let list = state.items;
-  if(state.cat) list = list.filter(x=>x.category===state.cat);
-  if(state.sub) list = list.filter(x=>x.subcategory===state.sub);
-  if(state.search){
-    const q = state.search.toLowerCase();
+
+  if(state.activeCat !== 'all'){
+    list = list.filter(x => x.category === state.activeCat);
+  }
+  if(q){
     list = list.filter(x =>
       x.title.toLowerCase().includes(q) ||
       x.description.toLowerCase().includes(q) ||
@@ -155,8 +105,11 @@ function renderItems(){
 
   wrap.innerHTML = list.map(it => `
     <article class="card">
-      <div class="kicker">${it.category} · ${it.subcategory} · ${fmtDate(it.date)}</div>
-      <div class="title">${it.logo?`<img class="logo" src="${it.logo}" alt="">`:''}${it.title}</div>
+      <div class="kicker">${it.category}${it.subcategory?` · ${it.subcategory}`:''} · ${fmtDate(it.date)}</div>
+      <div class="title">
+        ${it.logo ? `<img class="logo" src="${it.logo}" alt="">` : ''}
+        ${it.title}
+      </div>
       <div class="desc">${it.description || ''}</div>
       <div class="actions">
         <a href="${it.link}" target="_blank" rel="noopener">Открыть</a>
@@ -165,42 +118,76 @@ function renderItems(){
   `).join('');
 }
 
-function draw(){
-  renderBreadcrumbs();
-  if(state.view==='cats') renderCategories();
-  else if(state.view==='subs') renderSubcategories();
-  else renderItems();
-}
-
-// === ПОИСК ==================================================================
+// ===== Поиск ================================================================
 function bindSearch(){
-  $('#search').addEventListener('input', e=>{
+  $('#search').addEventListener('input', (e)=>{
     state.search = e.target.value.trim();
-    state.view = 'items'; // поиск всегда показывает документы
-    draw();
+    renderItems();
   });
 }
 
-// === ПАРОЛЬ ================================================================
+// ===== Back / Home ==========================================================
+function toggleBack(){
+  const show = state.activeCat !== 'all';
+  $('#backBtn').hidden = !show;
+}
+function bindBack(){
+  $('#backBtn').onclick = ()=>{ goHome(); };
+  $('#brandHome').onclick = (e)=>{ e.preventDefault(); goHome(); };
+  window.addEventListener('popstate', ()=>{
+    // читаем состояние из URL
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('cat') || 'all';
+    state.activeCat = cat;
+    $('#search').value = state.search = '';
+    renderCategories();
+    renderItems();
+    toggleBack();
+  });
+}
+function pushRoute(){
+  const params = new URLSearchParams(location.search);
+  if(state.activeCat==='all') params.delete('cat'); else params.set('cat', state.activeCat);
+  const url = `${location.pathname}?${params.toString()}`.replace(/\?$/,'');
+  history.pushState({}, '', url);
+}
+function goHome(){
+  state.activeCat = 'all';
+  state.search = '';
+  $('#search').value = '';
+  pushRoute();
+  renderCategories();
+  renderItems();
+  toggleBack();
+}
+
+// ===== Пароль ===============================================================
 function bindGate(){
   $('#enterBtn').onclick = ()=>{
     const ok = ($('#pwd').value||'').trim() === PORTAL_PASSWORD;
     if(ok){ $('#gate').style.display='none'; }
-    else $('#gateErr').textContent = 'Неверный пароль';
+    else { $('#gateErr').textContent = 'Неверный пароль'; }
   };
-  $('#pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#enterBtn').click(); });
+  $('#pwd').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('#enterBtn').click(); });
 }
 
-// === ЗАПУСК ================================================================
-document.addEventListener('DOMContentLoaded', async()=>{
+// ===== Инициализация ========================================================
+document.addEventListener('DOMContentLoaded', async ()=>{
   bindGate();
   bindSearch();
+  bindBack();
   try{
     await loadFromSheet();
-    draw();
+    // начальная категория из URL (если есть)
+    const params = new URLSearchParams(location.search);
+    state.activeCat = params.get('cat') || 'all';
+    renderCategories();
+    renderItems();
+    toggleBack();
   }catch(err){
     console.error(err);
-    // Фолбэк на случай ошибки API — пустая главная
-    state.items=[]; state.tree=new Map(); draw();
+    // Пустой рендер, чтобы не «падало»
+    renderCategories();
+    renderItems();
   }
 });
