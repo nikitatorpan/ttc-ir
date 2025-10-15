@@ -1,152 +1,233 @@
-document.addEventListener('DOMContentLoaded', function() {
-  const searchInput = document.getElementById('search');
-  const itemsContainer = document.getElementById('items');
-  const categoriesContainer = document.getElementById('categories');
+// ==== НАСТРОЙКИ (у вас уже подставлены реальные значения) ===================
+const SHEET_ID = '1fm8DS_c5sZFtFx1qvu03Qf-vKkDrjRLEMtw9WiEmFVY';
+const API_KEY  = 'AIzaSyAQcfiN2HujLtT_6Ye1Fof5-55jj5epZBo';
+const RANGE    = 'Лист1!A:G'; // Категория | Субкатегория | Название | Дата | Описание | Ссылка | Логотип
+const PORTAL_PASSWORD = 'Blacktech';
 
-  let currentCategory = 'all';
-  let uniqueCategories = [];
+// ==== УТИЛЫ ================================================================
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const parseDate = (s) => {
+  if (!s) return null;
+  // поддержим 2025-09-01 и 01.09.2025
+  const iso = /^\\d{4}-\\d{2}-\\d{2}$/.test(s) ? s : s.split('.').reverse().join('-');
+  const d = new Date(iso);
+  return isNaN(+d) ? null : d;
+};
+const fmtDate = (d) => d ? d.toLocaleDateString('ru-RU') : '—';
 
-  /**
-   * Создаёт кнопку категории и добавляет её в контейнер. При нажатии
-   * кнопка становится активной, устанавливает фильтр и перерисовывает карточки.
-   */
-  function createCategoryButton(catKey, displayName) {
-    const btn = document.createElement('button');
-    btn.textContent = displayName;
-    btn.setAttribute('data-category', catKey);
-    if (catKey === 'all') {
-      btn.classList.add('active');
-    }
-    btn.addEventListener('click', () => {
-      // Удаляем активный класс у всех кнопок
-      categoriesContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      // Делаем текущую кнопку активной
-      btn.classList.add('active');
-      // Запоминаем выбранную категорию и перерисовываем
-      currentCategory = catKey;
-      renderItems();
-    });
-    return btn;
+// ==== СОСТОЯНИЕ ============================================================
+const state = {
+  view: 'cats',        // cats | subs | items
+  cat: null,           // выбранная категория
+  sub: null,           // выбранная субкатегория
+  items: [],           // плоский список документов
+  tree: new Map(),     // Map<Category, Map<Subcategory, Item[]>>
+  search: ''
+};
+
+// ==== ЗАГРУЗКА ДАННЫХ И ПОСТРОЕНИЕ ДЕРЕВА ==================================
+async function loadFromSheet(){
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Sheets API error');
+  const json = await res.json();
+  const rows = json.values || [];
+  const header = rows[0] || [];
+  const idx = (name) => header.indexOf(name);
+
+  const iCat = idx('Категория');
+  const iSub = idx('Субкатегория');
+  const iTitle = idx('Название');
+  const iDate = idx('Дата');
+  const iDesc = idx('Описание');
+  const iLink = idx('Ссылка');
+  const iLogo = idx('Логотип');
+
+  const items = rows.slice(1).map((r, id) => {
+    const date = parseDate(r[iDate]);
+    return {
+      id,
+      category: (r[iCat]||'Без категории').trim(),
+      subcategory: (r[iSub]||'Без раздела').trim(),
+      title: (r[iTitle]||'Без названия').trim(),
+      date,
+      description: (r[iDesc]||'').trim(),
+      link: (r[iLink]||'#').trim(),
+      logo: (r[iLogo]||'').trim()
+    };
+  });
+
+  // сортировка новые → старые
+  items.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
+  state.items = items;
+
+  // построим дерево
+  const tree = new Map();
+  for(const it of items){
+    if(!tree.has(it.category)) tree.set(it.category, new Map());
+    const bucket = tree.get(it.category);
+    const key = it.subcategory || 'Без раздела';
+    if(!bucket.has(key)) bucket.set(key, []);
+    bucket.get(key).push(it);
+  }
+  state.tree = tree;
+}
+
+// ==== РЕНДЕР ================================================================
+function renderBreadcrumbs(){
+  const el = $('#breadcrumbs');
+  const parts = [];
+  parts.push('<a href="#" data-nav="root">Главная</a>');
+  if(state.view!=='cats' && state.cat){
+    parts.push('<span class="sep">/</span>');
+    parts.push(`<a href="#" data-nav="cat">${state.cat}</a>`);
+  }
+  if(state.view==='items' && state.sub){
+    parts.push('<span class="sep">/</span>');
+    parts.push(`<span>${state.sub}</span>`);
+  }
+  el.innerHTML = parts.join(' ');
+  el.onclick = (e)=>{
+    const a = e.target.closest('a[data-nav]');
+    if(!a) return;
+    e.preventDefault();
+    const nav = a.dataset.nav;
+    if(nav==='root'){ state.view='cats'; state.cat=null; state.sub=null; state.search=''; $('#search').value=''; }
+    if(nav==='cat'){ state.view='subs'; state.sub=null; }
+    draw();
+  };
+}
+
+function renderCategories(){
+  const wrap = $('#view-categories');
+  wrap.hidden = false;
+  $('#view-subcategories').hidden = true;
+  $('#view-items').hidden = true;
+
+  const cards = [];
+  for(const [cat, subs] of state.tree.entries()){
+    let count = 0;
+    for(const arr of subs.values()) count += arr.length;
+    cards.push(`
+      <article class="folder" data-cat="${cat}">
+        <div class="title">${cat}</div>
+        <div class="meta">Разделов: ${subs.size}</div>
+        <span class="badge">${count} док.</span>
+      </article>
+    `);
+  }
+  wrap.innerHTML = cards.join('');
+  wrap.onclick = (e)=>{
+    const a = e.target.closest('.folder');
+    if(!a) return;
+    state.cat = a.dataset.cat;
+    state.view = 'subs';
+    renderBreadcrumbs();
+    renderSubcategories();
+  };
+}
+
+function renderSubcategories(){
+  const wrap = $('#view-subcategories');
+  wrap.hidden = false;
+  $('#view-categories').hidden = true;
+  $('#view-items').hidden = true;
+
+  const subs = state.tree.get(state.cat) || new Map();
+  const cards = [];
+  for(const [sub, arr] of subs.entries()){
+    cards.push(`
+      <article class="folder" data-sub="${sub}">
+        <div class="title">${sub}</div>
+        <div class="meta">${state.cat}</div>
+        <span class="badge">${arr.length} док.</span>
+      </article>
+    `);
+  }
+  wrap.innerHTML = cards.join('');
+  wrap.onclick = (e)=>{
+    const a = e.target.closest('.folder');
+    if(!a) return;
+    state.sub = a.dataset.sub;
+    state.view = 'items';
+    renderBreadcrumbs();
+    renderItems();
+  };
+}
+
+function renderItems(){
+  const wrap = $('#view-items');
+  wrap.hidden = false;
+  $('#view-categories').hidden = true;
+  $('#view-subcategories').hidden = true;
+
+  let list = state.items;
+  if(state.cat) list = list.filter(x=>x.category===state.cat);
+  if(state.sub) list = list.filter(x=>x.subcategory===state.sub);
+  if(state.search){
+    const q = state.search.toLowerCase();
+    list = list.filter(x =>
+      x.title.toLowerCase().includes(q) ||
+      x.description.toLowerCase().includes(q) ||
+      x.category.toLowerCase().includes(q) ||
+      x.subcategory.toLowerCase().includes(q)
+    );
   }
 
-  /**
-   * Генерирует кнопки категорий на основе списка уникальных категорий.
-   * Всегда добавляет кнопку "Все".
-   */
-  function generateCategoryButtons() {
-    categoriesContainer.innerHTML = '';
-    // кнопка Все
-    const allBtn = createCategoryButton('all', 'Все');
-    categoriesContainer.appendChild(allBtn);
-    // остальные категории
-    uniqueCategories.forEach(cat => {
-      const btn = createCategoryButton(cat, cat);
-      categoriesContainer.appendChild(btn);
-    });
+  wrap.innerHTML = list.map(it=>`
+    <article class="card">
+      <div class="kicker">${it.category} · ${it.subcategory} · ${fmtDate(it.date)}</div>
+      <div class="title">
+        ${it.logo ? `<img class="logo" src="${it.logo}" alt="" /> `:''}${it.title}
+      </div>
+      <div class="desc">${it.description||''}</div>
+      <div class="actions">
+        <a href="${it.link}" target="_blank" rel="noopener">Открыть</a>
+      </div>
+    </article>
+  `).join('');
+}
+
+function draw(){
+  renderBreadcrumbs();
+  if(state.view==='cats') renderCategories();
+  else if(state.view==='subs') renderSubcategories();
+  else renderItems();
+}
+
+// ==== ПОИСК ================================================================
+function bindSearch(){
+  const inp = $('#search');
+  inp.addEventListener('input', ()=>{
+    state.search = inp.value.trim();
+    state.view = 'items'; // поиск всегда показывает документы
+    draw();
+  });
+}
+
+// ==== GATE (пароль) ========================================================
+function bindGate(){
+  $('#enterBtn').onclick = ()=>{
+    const ok = ($('#pwd').value||'').trim() === PORTAL_PASSWORD;
+    if(ok){ $('#gate').style.display='none'; }
+    else { $('#gateErr').textContent = 'Неверный пароль'; return; }
+  };
+  $('#pwd').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('#enterBtn').click(); });
+}
+
+// ==== ЗАПУСК ===============================================================
+document.addEventListener('DOMContentLoaded', async ()=>{
+  bindGate();
+  bindSearch();
+  try{
+    await loadFromSheet();
+    draw();
+  }catch(err){
+    console.error(err);
+    // Фолбэк: покажем пустые папки, чтобы не «ломался» UI
+    state.tree = new Map();
+    state.items = [];
+    draw();
   }
-
-  /**
-   * Отрисовывает карточки на основе window.portalItems и текущих фильтров.
-   */
-  function renderItems() {
-    const searchTerm = searchInput.value.toLowerCase();
-    itemsContainer.innerHTML = '';
-    const items = Array.isArray(window.portalItems) ? window.portalItems : [];
-    // Фильтруем элементы по категории и поиску
-    const filtered = items.filter(item => {
-      const matchesCategory = currentCategory === 'all' || item.category === currentCategory;
-      const titleMatch = (item.title || '').toLowerCase().includes(searchTerm);
-      const descMatch = (item.description || '').toLowerCase().includes(searchTerm);
-      return matchesCategory && (titleMatch || descMatch);
-    });
-    if (filtered.length === 0) {
-      itemsContainer.innerHTML = '<p>Совпадений не найдено.</p>';
-      return;
-    }
-    filtered.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'item-card';
-      // Форматируем дату в российском формате, если доступно
-      let dateStr = item.date || '';
-      if (item.dateObj instanceof Date && !isNaN(item.dateObj)) {
-        dateStr = item.dateObj.toLocaleDateString('ru-RU');
-      }
-      card.innerHTML = `
-        ${item.logo ? `<img class="item-logo" src="${item.logo}" alt="${item.title}">` : ''}
-        <h2>${item.title || ''}</h2>
-        <p class="item-category"><strong>Категория:</strong> ${item.category || ''}</p>
-        <p class="item-date"><strong>Дата:</strong> ${dateStr}</p>
-        <p class="item-description">${item.description || ''}</p>
-        <a href="${item.link || '#'}" target="_blank" rel="noopener">Открыть</a>
-      `;
-      itemsContainer.appendChild(card);
-    });
-  }
-
-  /**
-   * Загружает данные из Google Sheets с помощью официального API.
-   * После загрузки сортирует элементы по дате (от новых к старым), генерирует
-   * список уникальных категорий и создаёт кнопки фильтра.
-   */
-  function loadFromSheet() {
-    const SHEET_ID = '1fm8DS_c5sZFtFx1qvu03Qf-vKkDrjRLEMtw9WiEmFVY';
-    const API_KEY  = 'AIzaSyAQcfiN2HujLtT_6Ye1Fof5-55jj5epZBo';
-    const RANGE    = 'Лист1!A:F';
-    if (SHEET_ID === 'YOUR_SHEET_ID' || API_KEY === 'YOUR_API_KEY') {
-      renderItems();
-      return;
-    }
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
-    itemsContainer.innerHTML = '<p>Загрузка данных…</p>';
-    fetch(url)
-      .then(resp => {
-        if (!resp.ok) throw new Error('Network response was not ok');
-        return resp.json();
-      })
-      .then(data => {
-        const values = Array.isArray(data.values) ? data.values : [];
-        if (values.length > 0) values.shift();
-        const items = [];
-        values.forEach((row, idx) => {
-          const title = row[1] ? row[1].trim() : '';
-          const category = row[2] ? row[2].trim() : '';
-          const dateStr = row[3] ? row[3].trim() : '';
-          const description = row[4] ? row[4].trim() : '';
-          const link = row[5] ? row[5].trim() : '';
-          // Парсим дату в формате DD.MM.YYYY
-          let dateObj = null;
-          if (dateStr) {
-            const parts = dateStr.split('.');
-            if (parts.length === 3) {
-              const d = parseInt(parts[0], 10);
-              const m = parseInt(parts[1], 10) - 1;
-              const y = parseInt(parts[2], 10);
-              dateObj = new Date(y, m, d);
-            }
-          }
-          items.push({ id: idx + 1, category, title, date: dateStr, dateObj, description, link });
-        });
-        // Сортируем от новых к старым
-        items.sort((a, b) => {
-          const aTime = a.dateObj ? a.dateObj.getTime() : 0;
-          const bTime = b.dateObj ? b.dateObj.getTime() : 0;
-          return bTime - aTime;
-        });
-        window.portalItems = items;
-        // Список уникальных категорий
-        uniqueCategories = [...new Set(items.map(i => i.category))].filter(c => c);
-        generateCategoryButtons();
-        renderItems();
-      })
-      .catch(() => {
-        itemsContainer.innerHTML = '<p>Не удалось загрузить данные из таблицы.</p>';
-        renderItems();
-      });
-  }
-
-  // Обработчик поиска
-  searchInput.addEventListener('input', renderItems);
-
-  // Запускаем загрузку данных
-  loadFromSheet();
 });
