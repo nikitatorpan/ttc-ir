@@ -1,2 +1,0 @@
-# ttc-ir
-IR page
