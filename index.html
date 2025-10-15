@@ -1,40 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Портал инвесторов ТилТех Капитал</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Портал инвесторов ТилТех</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <script>
-    /* Простой запрос пароля. При неверном вводе происходит перенаправление на пустую страницу. */
-    (function() {
-      var password = "Blacktech";
-      var input = prompt("Введите пароль для доступа:");
-      if (input !== password) {
-        alert("Неверный пароль.");
-        // Перенаправляем пользователя на пустую страницу, чтобы скрыть контент
-        window.location.href = 'about:blank';
-      }
-    })();
-  </script>
-  <header>
-    <div class="logo">
-      <img src="logo.svg" alt="ТилТех Капитал логотип" />
+  <!-- Простая парольная защита -->
+  <div id="gate">
+    <div class="gate-card">
+      <h1>Портал инвесторов ТилТех</h1>
+      <p>Введите пароль доступа</p>
+      <input id="pwd" type="password" placeholder="Пароль" />
+      <button id="enterBtn">Войти</button>
+      <div id="gateErr" class="err"></div>
     </div>
-    <h1>Портал инвесторов ТилТех Капитал</h1>
+  </div>
+
+  <header class="app-header">
+    <div class="brand">
+      <img src="assets/ttc_logo.svg" alt="ТилТех Капитал" />
+      <span>Портал инвесторов</span>
+    </div>
+
+    <div class="controls">
+      <input id="search" type="search" placeholder="Поиск документов…" />
+    </div>
   </header>
-  <main>
-    <!-- Поиск -->
-    <input type="text" id="search" placeholder="Поиск документов…" />
 
-    <!-- Категории: кнопки будут сгенерированы динамически из списка категорий -->
-    <div id="categories"></div>
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Хлебные крошки">
+    <!-- динамически -->
+  </nav>
 
-    <!-- Container for items -->
-    <div id="items"></div>
+  <main class="container">
+    <!-- ГЛАВНАЯ: папки категорий -->
+    <section id="view-categories" class="grid"></section>
+
+    <!-- КАТЕГОРИЯ: папки субкатегорий -->
+    <section id="view-subcategories" class="grid" hidden></section>
+
+    <!-- СПИСОК ДОКУМЕНТОВ -->
+    <section id="view-items" class="grid" hidden></section>
   </main>
-  <script src="data/config.js"></script>
+
   <script src="scripts.js"></script>
 </body>
 </html>
