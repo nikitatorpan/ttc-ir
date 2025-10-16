@@ -23,25 +23,21 @@
 
   <header class="app-header">
     <a id="brandHome" class="brand" href="#">
-      <img src="assets/ttc_logo_white.png" alt="ТилТех Капитал" />
+      <img src="assets/ttc_logo_black.png" alt="ТилТех Капитал" />
       <span>Портал инвесторов ТилТех</span>
     </a>
-
-    <div class="head-controls">
-      <button id="backBtn" hidden>Назад</button>
-      <input id="search" type="search" placeholder="Поиск документов…" />
-    </div>
+    <button id="backBtn" hidden>Назад</button>
   </header>
 
-  <!-- Категории (чипы) -->
-  <nav id="categories" class="chips"></nav>
-
   <main class="container">
-    <!-- СУБКАТЕГОРИИ (папки внутри выбранной категории) -->
-    <section id="view-subcategories" class="grid" hidden></section>
+    <!-- ГЛАВНАЯ: папки категорий -->
+    <section id="view-cats" class="grid"></section>
 
-    <!-- ДОКУМЕНТЫ -->
-    <section id="view-items" class="grid"></section>
+    <!-- КАТЕГОРИЯ: папки субкатегорий -->
+    <section id="view-subs" class="grid" hidden></section>
+
+    <!-- СУБКАТЕГОРИЯ: документы -->
+    <section id="view-items" class="grid" hidden></section>
   </main>
 
   <script src="scripts.js"></script>
