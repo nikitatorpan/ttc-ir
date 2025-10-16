@@ -1,219 +1,177 @@
 // ===== Конфигурация =========================================================
 const SHEET_ID = '1fm8DS_c5sZFtFx1qvu03Qf-vKkDrjRLEMtw9WiEmFVY';
 const API_KEY  = 'AIzaSyAQcfiN2HujLtT_6Ye1Fof5-55jj5epZBo';
-const RANGE    = 'Лист1!A:G'; // Категория | Субкатегория | Название | Дата | Описание | Ссылка | Логотип
+const RANGE    = 'Лист1!A:G'; // B Название документа | C Категория | D Субкатегория | E Дата | F Пояснение | G Ссылка
 const PORTAL_PASSWORD = 'Blacktech';
 
 // ===== Утилиты ==============================================================
 const $ = s => document.querySelector(s);
-const parseDate = (str) => {
-  if(!str) return null;
-  const t = String(str).trim();
+const fmtDate = d => d ? d.toLocaleDateString('ru-RU') : '—';
+const parseDate = s => {
+  if(!s) return null;
+  const t = String(s).trim();
   const iso = /^\d{4}-\d{2}-\d{2}$/.test(t) ? t
-            : /^\d{2}\.\d{2}\.\d{4}$/.test(t) ? t.split('.').reverse().join('-')
-            : t;
+           : /^\d{2}\.\d{2}\.\d{4}$/.test(t) ? t.split('.').reverse().join('-')
+           : t;
   const d = new Date(iso);
   return isNaN(+d) ? null : d;
-}
-const fmtDate = (d) => d ? d.toLocaleDateString('ru-RU') : '—';
+};
 
 // ===== Состояние ============================================================
 const state = {
-  items: [],           // все документы
-  categories: [],      // уникальные категории (для чипов)
-  activeCat: 'all',    // выбранная категория
-  activeSub: null,     // выбранная подкатегория
-  search: '',
-  view: 'items'        // 'items' | 'subs'
+  tree: new Map(),  // Map<Category, Map<Subcat, Item[]>>
+  view: 'cats',     // 'cats' | 'subs' | 'items'
+  cat: null,
+  sub: null
 };
 
-// ===== Загрузка данных ======================================================
+// ===== Загрузка из Google Sheets ===========================================
 async function loadFromSheet(){
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`Sheets API: ${res.status}`);
-  const data = await res.json();
-  const rows = data.values || [];
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(`Sheets API: ${r.status}`);
+  const j = await r.json();
+  const rows = j.values || [];
   const header = rows[0] || [];
 
+  // Индексы нужных столбцов
   const idx = name => header.indexOf(name);
-  const iCat = idx('Категория');
-  const iSub = idx('Субкатегория');
-  const iTitle = idx('Название');
-  const iDate = idx('Дата');
-  const iDesc = idx('Описание');
-  const iLink = idx('Ссылка');
-  const iLogo = idx('Логотип');
+  const iTitle = idx('Название документа');
+  const iCat   = idx('Категория');
+  const iSub   = idx('Субкатегория');
+  const iDate  = idx('Дата обновления');
+  const iDesc  = idx('Пояснение');
+  const iLink  = idx('Ссылка');
 
   const items = rows.slice(1).map((r, id) => ({
     id,
+    title: (r[iTitle]||'Без названия').trim(),
     category: (r[iCat]||'Без категории').trim(),
     subcategory: (r[iSub]||'Без раздела').trim(),
-    title: (r[iTitle]||'Без названия').trim(),
     date: parseDate(r[iDate]),
     description: (r[iDesc]||'').trim(),
-    link: (r[iLink]||'#').trim(),
-    logo: (r[iLogo]||'').trim()
+    link: (r[iLink]||'#').trim()
   }));
 
-  // новые → старые
+  // Сортировка внутри каждой папки: новые сверху
   items.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
-  state.items = items;
-  state.categories = ['all', ...new Set(items.map(i => i.category))];
-}
 
-// ===== Категории (чипы) ====================================================
-function renderCategories(){
-  const box = $('#categories');
-  box.innerHTML = state.categories.map(cat => `
-    <button data-cat="${cat}" class="${state.activeCat===cat ? 'active':''}">
-      ${cat==='all' ? 'Все' : cat}
-    </button>
-  `).join('');
-
-  box.onclick = (e)=>{
-    const btn = e.target.closest('button[data-cat]');
-    if(!btn) return;
-    state.activeCat = btn.dataset.cat;
-    state.activeSub = null;
-    state.search = '';
-    $('#search').value = '';
-    if(state.activeCat === 'all') {
-      state.view = 'items';
-      renderItems();
-      toggleViews();
-      toggleBack();
-    } else {
-      state.view = 'subs';
-      renderSubcategories();
-      toggleViews();
-      toggleBack();
-    }
-    renderCategories(); // подсветка активной
-  };
-}
-
-// ===== Показ/скрытие секций =================================================
-function toggleViews(){
-  const subs = $('#view-subcategories');
-  const items = $('#view-items');
-  if(state.view === 'subs'){ subs.hidden = false; items.hidden = true; }
-  else { subs.hidden = true; items.hidden = false; }
-}
-function toggleBack(){
-  $('#backBtn').hidden = (state.activeCat === 'all' && state.view === 'items');
-}
-
-// ===== Рендер субкатегорий (папок) =========================================
-function renderSubcategories(){
-  const wrap = $('#view-subcategories');
-  if(state.activeCat === 'all'){ wrap.innerHTML=''; return; }
-
-  // собрать подкатегории внутри выбранной категории
-  const subs = new Map(); // Map<subcat, count>
-  for(const it of state.items){
-    if(it.category !== state.activeCat) continue;
+  // Строим дерево: Категория → Субкатегория → Items[]
+  const tree = new Map();
+  for(const it of items){
+    if(!tree.has(it.category)) tree.set(it.category, new Map());
+    const subs = tree.get(it.category);
     const key = it.subcategory || 'Без раздела';
-    subs.set(key, (subs.get(key)||0)+1);
+    if(!subs.has(key)) subs.set(key, []);
+    subs.get(key).push(it);
   }
+  state.tree = tree;
+}
 
-  // папки
-  wrap.innerHTML = [...subs.entries()].map(([sub, count]) => `
-    <article class="folder" data-sub="${sub}">
-      <div class="title">${sub}</div>
-      <div class="meta">${state.activeCat}</div>
-      <span class="badge">${count} док.</span>
-    </article>
-  `).join('');
+// ===== Рендер ===============================================================
+function draw(){
+  if(state.view === 'cats') return renderCats();
+  if(state.view === 'subs') return renderSubs();
+  return renderItems();
+}
 
-  // клик по папке → показываем документы этой подкатегории
-  wrap.onclick = (e)=>{
+// Главная: папки категорий
+function renderCats(){
+  $('#view-cats').hidden = false;
+  $('#view-subs').hidden = true;
+  $('#view-items').hidden = true;
+
+  const wrap = $('#view-cats');
+  const cards = [];
+  for(const [cat, subs] of state.tree.entries()){
+    let count = 0; for(const arr of subs.values()) count += arr.length;
+    cards.push(`
+      <article class="folder" data-cat="${escapeAttr(cat)}">
+        <div class="title">${escapeHtml(cat)}</div>
+        <div class="meta">Подпапок: ${subs.size}</div>
+        <span class="badge">${count} док.</span>
+      </article>
+    `);
+  }
+  wrap.innerHTML = cards.join('');
+  wrap.onclick = e=>{
     const el = e.target.closest('.folder'); if(!el) return;
-    state.activeSub = el.dataset.sub;
-    state.view = 'items';
-    renderItems();
-    toggleViews();
+    state.cat = el.dataset.cat;
+    state.sub = null;
+    state.view = 'subs';
     toggleBack();
+    renderSubs();
   };
 }
 
-// ===== Рендер документов ====================================================
-function renderItems(){
-  const wrap = $('#view-items');
-  const q = state.search.toLowerCase();
-  let list = state.items;
+// Внутри категории: папки субкатегорий
+function renderSubs(){
+  $('#view-cats').hidden = true;
+  $('#view-subs').hidden = false;
+  $('#view-items').hidden = true;
 
-  if(state.activeCat !== 'all'){
-    list = list.filter(x => x.category === state.activeCat);
+  const wrap = $('#view-subs');
+  const subs = state.tree.get(state.cat) || new Map();
+  const cards = [];
+  for(const [sub, arr] of subs.entries()){
+    cards.push(`
+      <article class="folder" data-sub="${escapeAttr(sub)}">
+        <div class="title">${escapeHtml(sub)}</div>
+        <div class="meta">${escapeHtml(state.cat)}</div>
+        <span class="badge">${arr.length} док.</span>
+      </article>
+    `);
   }
-  if(state.activeSub){
-    list = list.filter(x => (x.subcategory || 'Без раздела') === state.activeSub);
-  }
-  if(q){
-    list = list.filter(x =>
-      x.title.toLowerCase().includes(q) ||
-      x.description.toLowerCase().includes(q) ||
-      x.category.toLowerCase().includes(q) ||
-      x.subcategory.toLowerCase().includes(q)
-    );
-  }
+  wrap.innerHTML = cards.join('');
+  wrap.onclick = e=>{
+    const el = e.target.closest('.folder'); if(!el) return;
+    state.sub = el.dataset.sub;
+    state.view = 'items';
+    toggleBack();
+    renderItems();
+  };
+}
+
+// Внутри субкатегории: документы
+function renderItems(){
+  $('#view-cats').hidden = true;
+  $('#view-subs').hidden = true;
+  $('#view-items').hidden = false;
+
+  const wrap = $('#view-items');
+  const subs = state.tree.get(state.cat) || new Map();
+  const list = (subs.get(state.sub) || []).slice(); // уже отсортировано
 
   wrap.innerHTML = list.map(it => `
     <article class="card">
-      <div class="kicker">${it.category}${it.subcategory?` · ${it.subcategory}`:''} · ${fmtDate(it.date)}</div>
-      <div class="title">
-        ${it.logo ? `<img class="logo" src="${it.logo}" alt="">` : ''}
-        ${it.title}
-      </div>
-      <div class="desc">${it.description || ''}</div>
+      <div class="kicker">${escapeHtml(state.cat)} · ${escapeHtml(state.sub)} · ${fmtDate(it.date)}</div>
+      <div class="title">${escapeHtml(it.title)}</div>
+      <div class="desc">${escapeHtml(it.description||'')}</div>
       <div class="actions">
-        <a href="${it.link}" target="_blank" rel="noopener">Открыть</a>
+        <a href="${encodeURI(it.link)}" target="_blank" rel="noopener">Открыть</a>
       </div>
     </article>
   `).join('');
 }
 
-// ===== Поиск ================================================================
-function bindSearch(){
-  $('#search').addEventListener('input', (e)=>{
-    state.search = e.target.value.trim();
-    // при поиске всегда показываем документы текущего скоупа
-    state.view = 'items';
-    renderItems();
-    toggleViews();
+// ===== Навигация: Назад / Домой ============================================
+function bindNav(){
+  $('#backBtn').onclick = ()=>{
+    if(state.view === 'items'){ state.view = 'subs'; }
+    else if(state.view === 'subs'){ state.view = 'cats'; state.cat=null; }
     toggleBack();
-  });
-}
-
-// ===== Back / Home ==========================================================
-function bindBack(){
-  $('#backBtn').onclick = ()=> {
-    if(state.view === 'items' && state.activeSub){       // из документов в подкатегории → назад к папкам
-      state.activeSub = null;
-      state.view = 'subs';
-      renderSubcategories();
-      toggleViews(); toggleBack();
-      return;
-    }
-    if(state.activeCat !== 'all'){                       // из папок → на главную
-      state.activeCat = 'all';
-      state.activeSub = null;
-      state.view = 'items';
-      renderItems(); renderCategories();
-      toggleViews(); toggleBack();
-    }
+    draw();
   };
-
   $('#brandHome').onclick = (e)=>{
     e.preventDefault();
-    state.activeCat = 'all';
-    state.activeSub = null;
-    state.search = '';
-    $('#search').value = '';
-    state.view = 'items';
-    renderItems(); renderCategories();
-    toggleViews(); toggleBack();
+    state.view = 'cats'; state.cat=null; state.sub=null;
+    toggleBack();
+    draw();
   };
+}
+function toggleBack(){
+  const show = !(state.view === 'cats');
+  $('#backBtn').hidden = !show;
 }
 
 // ===== Пароль ===============================================================
@@ -223,23 +181,28 @@ function bindGate(){
     if(ok){ $('#gate').style.display='none'; }
     else { $('#gateErr').textContent = 'Неверный пароль'; }
   };
-  $('#pwd').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('#enterBtn').click(); });
+  $('#pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#enterBtn').click(); });
 }
 
-// ===== Запуск ===============================================================
+// ===== Безопасный текст =====================================================
+function escapeHtml(s){
+  return String(s)
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'",'&#39;');
+}
+function escapeAttr(s){ return escapeHtml(s).replaceAll('"','&quot;'); }
+
+// ===== Инициализация ========================================================
 document.addEventListener('DOMContentLoaded', async ()=>{
   bindGate();
-  bindSearch();
-  bindBack();
+  bindNav();
   try{
     await loadFromSheet();
-    renderCategories();            // чипы
-    renderItems();                 // стартовый список (Все)
-    toggleViews();                 // документы видимы, папки скрыты
-    toggleBack();                  // «Назад» скрыта на главной
+    state.view = 'cats';
+    toggleBack();
+    draw();
   }catch(err){
     console.error(err);
-    $('#view-items').innerHTML = '';
-    $('#view-subcategories').innerHTML = '';
+    $('#view-cats').innerHTML = '';
   }
 });
