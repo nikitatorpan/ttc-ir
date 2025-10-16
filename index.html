@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Пароль -->
   <div id="gate">
     <div class="gate-card">
       <h1>Портал инвесторов ТилТех</h1>
@@ -32,10 +33,15 @@
     </div>
   </header>
 
+  <!-- Категории (чипы) -->
   <nav id="categories" class="chips"></nav>
 
   <main class="container">
-    <section id="items" class="grid"></section>
+    <!-- СУБКАТЕГОРИИ (папки внутри выбранной категории) -->
+    <section id="view-subcategories" class="grid" hidden></section>
+
+    <!-- ДОКУМЕНТЫ -->
+    <section id="view-items" class="grid"></section>
   </main>
 
   <script src="scripts.js"></script>
